@@ -1,7 +1,7 @@
 import openai
 import requests
 from bs4 import BeautifulSoup
-from config import OPENAI_API_KEY
+from config import OPENAI_API_KEY, UNSPLASH_ACCESS_KEY
 from exceptions import ContentGenerationError
 from logger import setup_logger
 
@@ -50,12 +50,20 @@ def generate_blog_post_content(topic):
 
 def fetch_relevant_image(topic):
     try:
-        search_url = f"https://unsplash.com/s/photos/{topic.replace(' ', '-')}"
-        response = requests.get(search_url)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        image = soup.find('img', {'class': 'YVj9w'})
-        if image:
-            return image['src']
+        url = "https://api.unsplash.com/search/photos"
+        headers = {
+            "Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}"
+        }
+        params = {
+            "query": topic,
+            "per_page": 1
+        }
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        if data['results']:
+            return data['results'][0]['urls']['regular']
     except Exception as e:
         logger.error(f"Failed to fetch image: {str(e)}")
     return None
